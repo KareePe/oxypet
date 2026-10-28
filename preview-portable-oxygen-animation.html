@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Portable Oxygen — Animation</title>
+    <!-- Preview only: Tailwind Play CDN -->
+    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { seed: ["Noto Sans Thai", "sans-serif"] },
+            keyframes: { "cta-shine": { "0%, 62%": { transform: "translateX(-120%)" }, "100%": { transform: "translateX(120%)" } } },
+            animation: { "cta-shine": "cta-shine 3.6s ease-in-out infinite" },
+          },
+        },
+      };
+    </script>
+    <style>
+      @font-face { font-family: "Noto Sans Thai"; font-weight: 100 900; font-display: swap; src: url(assets/fonts/noto-sans-thai-thai.woff2) format("woff2"); unicode-range: U+0E01-0E5B, U+200C-200D, U+25CC; }
+      @font-face { font-family: "Noto Sans Thai"; font-weight: 100 900; font-display: swap; src: url(assets/fonts/noto-sans-thai-latin.woff2) format("woff2"); unicode-range: U+0000-00FF, U+2000-206F; }
+
+      /* ปิดแต่ละ FX = ไม่มีผลอะไรเลย */
+      body:not(.fx-route) .po-route { display: none; }
+      body:not(.fx-bubbles) .po-bubbles { display: none; }
+
+      /* 1 Route */
+      .po-route-line { background: repeating-linear-gradient(90deg, #0A3A8B 0 10px, transparent 10px 18px); opacity: .35; }
+      .po-route-car { left: 0; }
+
+      /* 2 Bubbles */
+      .po-bubbles span { position: absolute; bottom: 18%; border-radius: 9999px; background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.95), rgba(186,230,253,.55) 60%, rgba(56,189,248,.25)); box-shadow: 0 0 0 1px rgba(255,255,255,.6); opacity: 0; }
+
+      /* 5 Stagger / 6 Check — สถานะเริ่มต้นก่อนเลื่อนถึง */
+      .fx-stagger .po-stagger { opacity: 0; transform: translateY(18px); transition: opacity .6s ease var(--d), transform .6s ease var(--d); }
+      .fx-stagger .po-stagger.in { opacity: 1; transform: none; }
+      .fx-check .po-check { transform: scale(0); transition: transform .45s cubic-bezier(.34,1.56,.64,1) calc(var(--d) + 250ms); }
+      .fx-check .po-check.in { transform: scale(1); }
+
+      /* 7 Hover */
+      .fx-hover .po-card { transition: transform .25s ease, box-shadow .25s ease, opacity .6s ease var(--d); }
+      @media (hover: hover) {
+        .fx-hover .po-card:hover { transform: translateY(-4px); box-shadow: 0 18px 32px -18px rgba(10,58,139,.45); }
+      }
+
+      @media (prefers-reduced-motion: no-preference) {
+        @keyframes po-car { 0% { left: 0; } 70%, 100% { left: calc(100% - 2rem); } }
+        @keyframes po-dash { to { background-position: 18px 0; } }
+        .fx-route .po-route-car { animation: po-car 4.5s ease-in-out infinite; }
+        .fx-route .po-route-line { animation: po-dash .8s linear infinite; }
+
+        @keyframes po-bubble { 0% { transform: translateY(0) scale(.6); opacity: 0; } 15% { opacity: .9; } 100% { transform: translateY(-220px) scale(1.1); opacity: 0; } }
+        .fx-bubbles .po-bubbles span { animation: po-bubble 6s ease-in infinite; }
+
+        @keyframes po-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        .fx-float .po-float { animation: po-float 5s ease-in-out infinite; }
+
+        @keyframes po-kenburns { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+        .fx-kenburns .po-kenburns { animation: po-kenburns 20s ease-in-out infinite; transform-origin: 40% 60%; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .fx-stagger .po-stagger, .fx-check .po-check { opacity: 1; transform: none; transition: none; }
+      }
+    </style>
+  </head>
+  <body class="bg-white font-seed text-slate-700 antialiased">
+    <!-- Control panel (preview only) -->
+    <aside class="fixed bottom-4 right-4 z-50 w-[300px] max-w-[calc(100vw-2rem)] rounded-2xl bg-white/95 p-3 shadow-2xl ring-1 ring-slate-200 backdrop-blur">
+      <div class="flex items-center justify-between px-2">
+        <p class="text-sm font-bold text-[#0A3A8B]">Animation · เลือกเปิด/ปิด</p>
+        <button id="fx-toggle-panel" type="button" class="text-xs font-semibold text-slate-500 hover:text-slate-900">ย่อ</button>
+      </div>
+      <div id="fx-panel-body">
+        <div class="mt-2 max-h-[50vh] space-y-0.5 overflow-y-auto"><label class="flex cursor-pointer items-start gap-2 rounded-xl px-2 py-1.5 hover:bg-slate-50">
+          <input type="checkbox" data-fx="route" class="mt-1 h-4 w-4 accent-[#0A3A8B]"  />
+          <span><span class="block text-sm font-semibold text-slate-900">1 · เส้นทาง โรงพยาบาลสัตว์ → บ้าน</span><span class="block text-xs text-slate-500">แถบใต้รูป รถวิ่งตามเส้นประจากซ้ายไปขวา</span></span>
+        </label><label class="flex cursor-pointer items-start gap-2 rounded-xl px-2 py-1.5 hover:bg-slate-50">
+          <input type="checkbox" data-fx="bubbles" class="mt-1 h-4 w-4 accent-[#0A3A8B]"  />
+          <span><span class="block text-sm font-semibold text-slate-900">2 · ฟองออกซิเจนลอยขึ้น</span><span class="block text-xs text-slate-500">ฟองใสลอยขึ้นจากบริเวณเครื่องแล้วจางหาย</span></span>
+        </label><label class="flex cursor-pointer items-start gap-2 rounded-xl px-2 py-1.5 hover:bg-slate-50">
+          <input type="checkbox" data-fx="float" class="mt-1 h-4 w-4 accent-[#0A3A8B]" checked />
+          <span><span class="block text-sm font-semibold text-slate-900">3 · การ์ด LONGFIAN ลอยขึ้นลง</span><span class="block text-xs text-slate-500">ขยับขึ้นลง ~5px ทุก 5 วินาที</span></span>
+        </label><label class="flex cursor-pointer items-start gap-2 rounded-xl px-2 py-1.5 hover:bg-slate-50">
+          <input type="checkbox" data-fx="kenburns" class="mt-1 h-4 w-4 accent-[#0A3A8B]"  />
+          <span><span class="block text-sm font-semibold text-slate-900">4 · รูปหลักซูมช้าๆ</span><span class="block text-xs text-slate-500">ขยาย 100% ↔ 106% ใน 20 วินาที</span></span>
+        </label><label class="flex cursor-pointer items-start gap-2 rounded-xl px-2 py-1.5 hover:bg-slate-50">
+          <input type="checkbox" data-fx="stagger" class="mt-1 h-4 w-4 accent-[#0A3A8B]" checked />
+          <span><span class="block text-sm font-semibold text-slate-900">5 · การ์ดปรากฏทีละใบ</span><span class="block text-xs text-slate-500">fade-up ห่างกันใบละ 120ms ตอนเลื่อนถึง</span></span>
+        </label><label class="flex cursor-pointer items-start gap-2 rounded-xl px-2 py-1.5 hover:bg-slate-50">
+          <input type="checkbox" data-fx="check" class="mt-1 h-4 w-4 accent-[#0A3A8B]" checked />
+          <span><span class="block text-sm font-semibold text-slate-900">6 · ✓ เด้งทีละอัน</span><span class="block text-xs text-slate-500">ไอคอนถูกในรายการ 'เหมาะกับใคร' เด้งตามลำดับ</span></span>
+        </label><label class="flex cursor-pointer items-start gap-2 rounded-xl px-2 py-1.5 hover:bg-slate-50">
+          <input type="checkbox" data-fx="hover" class="mt-1 h-4 w-4 accent-[#0A3A8B]" checked />
+          <span><span class="block text-sm font-semibold text-slate-900">7 · การ์ดยกตัวตอน hover</span><span class="block text-xs text-slate-500">เฉพาะ desktop · ลองเอาเมาส์ชี้การ์ด</span></span>
+        </label></div>
+        <div class="mt-2 grid grid-cols-[1.6fr_1fr_1fr] gap-1.5 px-1 text-xs font-semibold">
+          <button type="button" data-preset="rec" class="rounded-lg bg-[#0A3A8B] px-2 py-1.5 text-white">ที่เลือก (3·5·6·7)</button>
+          <button type="button" data-preset="all" class="rounded-lg bg-slate-100 px-2 py-1.5 hover:bg-slate-200">ทั้งหมด</button>
+          <button type="button" data-preset="none" class="rounded-lg bg-slate-100 px-2 py-1.5 hover:bg-slate-200">ปิดหมด</button>
+        </div>
+        <button id="fx-replay" type="button" class="mt-1.5 w-full rounded-lg bg-green-600 px-2 py-1.5 text-xs font-semibold text-white hover:bg-green-700">↻ เล่นข้อ 5–6 ใหม่</button>
+        <p id="fx-reduced" class="mt-2 hidden px-1 text-[11px] text-amber-700">เครื่องนี้ตั้ง “ลดการเคลื่อนไหว” ไว้ animation แบบเคลื่อนไหวต่อเนื่องจึงถูกปิด</p>
+      </div>
+    </aside>
+
+    <div class="h-10"></div>
+    <section id="portable-oxygen" class="bg-white py-12 md:py-16">
+      <div class="max-w-[96rem] mx-auto px-4 md:px-[28px]">
+        <div class="grid items-center gap-8 lg:grid-cols-2 lg:gap-14">
+          <!-- Image -->
+          <div data-aos="fade-up">
+          <div class="relative">
+            <div class="relative overflow-hidden rounded-3xl shadow-xl">
+              <div class="po-bubbles pointer-events-none absolute inset-0 z-10" aria-hidden="true"><span style="left:14%;width:10px;height:10px;animation-delay:0s;animation-duration:6s"></span><span style="left:20%;width:6px;height:6px;animation-delay:1.4s;animation-duration:5s"></span><span style="left:26%;width:14px;height:14px;animation-delay:2.6s;animation-duration:7s"></span><span style="left:32%;width:8px;height:8px;animation-delay:0.8s;animation-duration:5.5s"></span><span style="left:38%;width:12px;height:12px;animation-delay:3.4s;animation-duration:6.5s"></span><span style="left:24%;width:7px;height:7px;animation-delay:4.2s;animation-duration:5s"></span><span style="left:30%;width:9px;height:9px;animation-delay:5.1s;animation-duration:6s"></span><span style="left:18%;width:11px;height:11px;animation-delay:3s;animation-duration:7.5s"></span></div>
+            <img
+              src="assets/img/portable-oxygen-bg.webp"
+              alt="เครื่องผลิตออกซิเจนแบบพกพา LONGFIAN และกระเป๋าเดินทางออกซิเจน OxyPet Medical ในรถพร้อมสุนัขและแมว"
+              width="1200"
+              height="954"
+              class="po-kenburns aspect-[1200/954] w-full object-cover"
+              decoding="async"
+            />
+            </div>
+            <div
+              class="po-float absolute z-20 -bottom-6 left-4 right-4 flex items-center gap-4 rounded-2xl bg-white p-3 shadow-lg ring-1 ring-[#0A3A8B]/10 sm:left-auto sm:right-6 sm:max-w-sm sm:p-4"
+            >
+              <img
+                src="assets/img/portable-o2-longfian.webp"
+                alt=""
+                width="800"
+                height="800"
+                class="h-16 w-16 shrink-0 rounded-xl bg-slate-50 object-contain sm:h-20 sm:w-20"
+                
+                decoding="async"
+              />
+              <div class="leading-snug">
+                <p class="text-[15px] font-bold text-[#0A3A8B] sm:text-[17px]">
+                  เครื่อง LONGFIAN รุ่นจริงที่ให้เช่า
+                </p>
+                <p class="mt-0.5 text-[13px] text-slate-500 sm:text-sm">พร้อมกระเป๋าเดินทางออกซิเจน</p>
+              </div>
+            </div>
+          </div>
+
+            <!-- FX 1: เส้นทางโรงพยาบาลสัตว์ → บ้าน -->
+            <div class="po-route mt-12 rounded-2xl bg-[#F7F9FC] px-4 py-3 ring-1 ring-slate-200">
+              <div class="flex items-center gap-3">
+                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#0A3A8B] text-white" aria-hidden="true">
+                  <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v4M10 8h4"/><path d="M14 22v-4a2 2 0 0 0-4 0v4"/><path d="M18 22V5l-6-3-6 3v17"/><path d="M4 22h16"/></svg>
+                </span>
+                <div class="po-route-track relative h-8 flex-1">
+                  <span class="po-route-line absolute inset-x-0 top-1/2 h-[3px] -translate-y-1/2 rounded-full"></span>
+                  <span class="po-route-car absolute top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full bg-white text-[#0A3A8B] shadow ring-1 ring-[#0A3A8B]/15" aria-hidden="true">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9L18 10l-2.7-3.6A2 2 0 0 0 13.7 6H7.3a2 2 0 0 0-1.6.8L3 10.5l-.9.4C1.4 11.2 1 12 1 12.8V16c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/></svg>
+                  </span>
+                </div>
+                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-green-600 text-white" aria-hidden="true">
+                  <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></svg>
+                </span>
+              </div>
+              <div class="mt-1 flex justify-between text-xs font-semibold text-slate-500">
+                <span>โรงพยาบาลสัตว์</span><span>ถึงบ้านอย่างมั่นใจ</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Content -->
+          <div data-aos="fade-up" data-aos-delay="100" class="pt-4 lg:pt-0">
+            <span
+              class="inline-flex items-center gap-2 rounded-full bg-green-50 px-3 py-1 text-sm font-semibold text-green-700 ring-1 ring-green-600/20"
+            >
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9L18 10l-2.7-3.6A2 2 0 0 0 13.7 6H7.3a2 2 0 0 0-1.6.8L3 10.5l-.9.4C1.4 11.2 1 12 1 12.8V16c0 .6.4 1 1 1h2" />
+                <circle cx="7" cy="17" r="2" />
+                <circle cx="17" cy="17" r="2" />
+                <path d="M9 17h6" />
+              </svg>
+              เดินทางกลับบ้านอย่างมั่นใจ
+            </span>
+            <h2
+              class="mt-3 text-[24px] font-extrabold leading-snug text-[#0A3A8B] md:text-[32px]"
+            >
+              เครื่องผลิตออกซิเจนแบบพกพา
+              <span class="text-green-600">พร้อมกระเป๋าเดินทางออกซิเจน</span
+              >สำหรับสัตว์เลี้ยง
+            </h2>
+            <p class="mt-3 text-[15px] leading-relaxed text-slate-700 md:text-base">
+              เตรียมความพร้อมสำหรับการเดินทางกลับบ้านจากโรงพยาบาลสัตว์
+              ด้วยบริการเช่าอุปกรณ์ออกซิเจนสำหรับสัตว์เลี้ยงระหว่างเดินทางระยะสั้น
+            </p>
+            <p class="mt-2 text-sm text-slate-500">
+              สำหรับน้องที่สัตวแพทย์ประเมินแล้วว่าสามารถเดินทางได้
+              และมีความจำเป็นต้องได้รับออกซิเจนเสริมระหว่างการเคลื่อนย้าย
+            </p>
+
+            <div class="mt-6 grid gap-3 sm:grid-cols-2">
+              <div style="--d:0ms" class="po-stagger po-card rounded-2xl bg-[#F7F9FC] p-4">
+                <svg class="h-7 w-7 text-[#0A3A8B]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="2" y="7" width="20" height="14" rx="2" />
+                  <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2M2 13h20" />
+                </svg>
+                <h3 class="mt-2 font-bold text-slate-900">ออกแบบเพื่อรองรับการเดินทาง</h3>
+                <p class="mt-1 text-sm leading-relaxed text-slate-700">
+                  เครื่องผลิตออกซิเจนแบบพกพา พร้อมกระเป๋าเดินทางออกซิเจน
+                  ช่วยให้เจ้าของเตรียมอุปกรณ์ที่จำเป็นสำหรับการเดินทางได้สะดวกยิ่งขึ้น
+                </p>
+              </div>
+              <div style="--d:120ms" class="po-stagger po-card rounded-2xl bg-[#F7F9FC] p-4">
+                <svg class="h-7 w-7 text-[#0A3A8B]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="8" y="2" width="8" height="4" rx="1" />
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                  <path d="m9 14 2 2 4-4" />
+                </svg>
+                <h3 class="mt-2 font-bold text-slate-900">เตรียมความพร้อมก่อนออกเดินทาง</h3>
+                <p class="mt-1 text-sm leading-relaxed text-slate-700">
+                  ควรตรวจสอบอุปกรณ์ แหล่งจ่ายไฟ ระยะเวลาการใช้งาน
+                  และวิธีใช้งานให้เหมาะสมกับแผนการเดินทางก่อนออกจากโรงพยาบาลสัตว์
+                </p>
+              </div>
+              <div style="--d:240ms" class="po-stagger po-card rounded-2xl bg-[#F7F9FC] p-4 sm:col-span-2">
+                <svg class="h-7 w-7 text-[#0A3A8B]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 12 0V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3" />
+                  <path d="M8 15v1a6 6 0 0 0 12 0v-4" />
+                  <circle cx="20" cy="10" r="2" />
+                </svg>
+                <h3 class="mt-2 font-bold text-slate-900">ใช้งานตามคำแนะนำของสัตวแพทย์</h3>
+                <p class="mt-1 text-sm leading-relaxed text-slate-700">
+                  ควรให้สัตวแพทย์ประเมินความพร้อมของน้อง ความจำเป็นในการให้ออกซิเจน
+                  และวิธีการเคลื่อนย้ายที่เหมาะสมก่อนเดินทางทุกครั้ง
+                </p>
+              </div>
+            </div>
+
+            <!-- CTA -->
+            <div class="mt-6">
+              <p class="font-bold text-slate-900">
+                กำลังวางแผนพาน้องกลับบ้านจากโรงพยาบาลสัตว์ใช่ไหม?
+              </p>
+              <p class="mt-1 text-sm text-slate-700">
+                สอบถามบริการเช่าเครื่องผลิตออกซิเจนแบบพกพา
+                พร้อมรายละเอียดอุปกรณ์และเงื่อนไขการใช้งานกับทีม OxyPet Medical
+                ก่อนออกเดินทาง
+              </p>
+              <div
+                class="mt-5 grid max-w-2xl gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2"
+              >
+                <a
+                  id="portable-btn-line"
+                  href="https://lin.ee/773tcNc"
+                  target="_blank"
+                  rel="noopener"
+                  class="relative flex items-center gap-3 overflow-hidden whitespace-nowrap rounded-2xl bg-[#06C755] py-3.5 pl-3.5 pr-6 text-white shadow-[0_12px_24px_-12px_rgba(6,160,70,0.8)] transition after:pointer-events-none after:absolute after:inset-0 after:-translate-x-full after:animate-cta-shine after:bg-[linear-gradient(110deg,transparent_35%,rgba(255,255,255,0.5)_50%,transparent_65%)] after:content-[''] hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#06C755] motion-reduce:after:hidden"
+                >
+                  <span
+                    class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/20 md:h-[50px] md:w-[50px]"
+                  >
+                    <img
+                      src="assets/icon/line-cta.webp"
+                      alt=""
+                      class="h-7 w-7 object-contain md:h-[30px] md:w-[30px]"
+                      
+                      decoding="async"
+                    />
+                  </span>
+                  <span class="flex flex-col leading-[1.3]">
+                    <span class="text-[18px] font-extrabold md:text-[20px]"
+                      >ทักไลน์ปรึกษาฟรี</span
+                    >
+                    <span class="text-[13px] font-medium opacity-90 md:text-sm"
+                      >สอบถามบริการเช่ารายวัน</span
+                    >
+                  </span>
+                </a>
+                <a
+                  id="portable-btn-call"
+                  href="tel:0996963642"
+                  class="relative flex items-center gap-3 overflow-hidden whitespace-nowrap rounded-2xl bg-[#0A3A8B] py-3.5 pl-3.5 pr-6 text-white shadow-[0_12px_24px_-12px_rgba(10,58,139,0.8)] transition after:pointer-events-none after:absolute after:inset-0 after:-translate-x-full after:animate-cta-shine after:bg-[linear-gradient(110deg,transparent_35%,rgba(255,255,255,0.5)_50%,transparent_65%)] after:content-[''] after:[animation-delay:1.8s] hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A3A8B] motion-reduce:after:hidden"
+                >
+                  <span
+                    class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/15 md:h-[50px] md:w-[50px]"
+                  >
+                    <img
+                      src="assets/icon/phone-cta.webp"
+                      alt=""
+                      class="h-6 w-6 object-contain md:h-7 md:w-7"
+                      
+                      decoding="async"
+                    />
+                  </span>
+                  <span class="flex flex-col leading-[1.3]">
+                    <span class="text-[18px] font-extrabold md:text-[20px]"
+                      >โทร 099-696-3642</span
+                    >
+                    <span class="text-[13px] font-medium opacity-90 md:text-sm"
+                      >โทรปรึกษาทีมงาน</span
+                    >
+                  </span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ภาพเครื่องจริง + เหมาะกับใคร + ข้อควรทราบด้านความปลอดภัย -->
+        <div class="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-[0.8fr_1fr_1fr]">
+          <figure
+            data-aos="fade-up"
+            style="--d:0ms" class="po-stagger po-card overflow-hidden rounded-3xl bg-[#F7F9FC] ring-1 ring-slate-200"
+          >
+            <img
+              src="assets/img/portable-o2-longfian-full.webp"
+              alt="เครื่องผลิตออกซิเจนแบบพกพา LONGFIAN รุ่นจริงที่ OxyPet Medical ให้เช่า"
+              width="1000"
+              height="1000"
+              class="aspect-square w-full bg-white object-contain"
+              
+              decoding="async"
+            />
+            <figcaption class="p-5">
+              <p class="font-bold text-[#0A3A8B]">
+                เครื่อง LONGFIAN รุ่นจริงที่ให้เช่า
+              </p>
+              <p class="mt-1 text-sm text-slate-600">
+                เครื่องผลิตออกซิเจนแบบพกพา พร้อมกระเป๋าเดินทางออกซิเจน
+              </p>
+            </figcaption>
+          </figure>
+          <div data-aos="fade-up" style="--d:120ms" class="po-stagger po-card rounded-3xl border border-slate-200 p-6">
+            <h3 class="text-lg font-bold text-[#0A3A8B]">
+              เหมาะสำหรับการเดินทางระยะสั้นที่มีการวางแผนล่วงหน้า
+            </h3>
+            <ul class="mt-4 space-y-3 text-[15px] text-slate-700">
+              <li class="flex gap-3">
+                <span style="--d:0ms" class="po-check mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-green-600 text-white">
+                  <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
+                </span>
+                สัตว์เลี้ยงที่สัตวแพทย์ประเมินแล้วว่าสามารถเดินทางกลับบ้านได้
+              </li>
+              <li class="flex gap-3">
+                <span style="--d:180ms" class="po-check mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-green-600 text-white">
+                  <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
+                </span>
+                เจ้าของที่ต้องการสอบถามเกี่ยวกับอุปกรณ์ออกซิเจนสำหรับการเดินทางจากโรงพยาบาลสัตว์
+              </li>
+              <li class="flex gap-3">
+                <span style="--d:360ms" class="po-check mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-green-600 text-white">
+                  <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
+                </span>
+                กรณีที่สัตวแพทย์แนะนำให้มีออกซิเจนเสริมระหว่างการเคลื่อนย้าย
+                และได้ตรวจสอบแล้วว่าอุปกรณ์เหมาะสมกับความต้องการของน้อง
+              </li>
+            </ul>
+            <p class="mt-4 text-sm text-slate-500">
+              ทั้งนี้ ความเหมาะสมในการใช้งานขึ้นอยู่กับอาการของสัตว์เลี้ยง แผนการเดินทาง
+              และข้อกำหนดของอุปกรณ์แต่ละรุ่น
+            </p>
+          </div>
+          <div data-aos="fade-up" data-aos-delay="100" style="--d:240ms" class="po-stagger po-card rounded-3xl border border-amber-200 bg-amber-50/60 p-6 md:col-span-2 lg:col-span-1">
+            <h3 class="flex items-center gap-2 text-lg font-bold text-amber-900">
+              <svg class="h-6 w-6 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <path d="M12 8v4M12 16h.01" />
+              </svg>
+              ข้อควรทราบด้านความปลอดภัย
+            </h3>
+            <p class="mt-3 font-semibold text-slate-900">
+              อุปกรณ์นี้มีไว้สำหรับการเดินทางระยะสั้น
+              ไม่ใช่สำหรับการให้ออกซิเจนต่อเนื่องเป็นเวลานานหรือใช้ทดแทนการรักษาในโรงพยาบาลสัตว์
+            </p>
+            <ul class="mt-3 list-disc space-y-2 pl-5 text-sm leading-relaxed text-slate-700">
+              <li>
+                ระยะเวลาการใช้งานจริงขึ้นอยู่กับรุ่นอุปกรณ์ ระดับการใช้งาน แหล่งจ่ายไฟ
+                และระยะเวลาที่แบตเตอรี่สามารถรองรับได้
+                โปรดตรวจสอบข้อกำหนดของเครื่องรุ่นที่ให้บริการก่อนออกเดินทาง
+              </li>
+              <li>
+                ก่อนใช้บริการ ควรปรึกษาสัตวแพทย์เพื่อประเมินความพร้อมของสัตว์เลี้ยงและวางแผนการเดินทาง
+                หากน้องยังหายใจลำบาก มีอาการทรุดลง หรือยังต้องได้รับการดูแลอย่างใกล้ชิด
+                ควรให้สัตวแพทย์พิจารณาวิธีเคลื่อนย้ายที่ปลอดภัยและเหมาะสมที่สุด
+              </li>
+              <li>
+                การมีอุปกรณ์ออกซิเจนระหว่างเดินทางไม่สามารถรับประกันความปลอดภัยหรือทดแทนการเฝ้าระวังทางการแพทย์ได้
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+    <div class="h-[40vh]"></div>
+
+    <script>
+      const body = document.body;
+      const boxes = [...document.querySelectorAll("[data-fx]")];
+      const PRESETS = { rec: ["float", "stagger", "check", "hover"], all: boxes.map((b) => b.dataset.fx), none: [] };
+      const sync = () => boxes.forEach((b) => body.classList.toggle("fx-" + b.dataset.fx, b.checked));
+      boxes.forEach((b) => b.addEventListener("change", () => { sync(); if (["stagger", "check"].includes(b.dataset.fx)) replay(); }));
+      document.querySelectorAll("[data-preset]").forEach((btn) =>
+        btn.addEventListener("click", () => {
+          boxes.forEach((b) => (b.checked = PRESETS[btn.dataset.preset].includes(b.dataset.fx)));
+          sync();
+          replay();
+        })
+      );
+
+      // 5–6: เล่นเมื่อเลื่อนมาถึง
+      const targets = document.querySelectorAll(".po-stagger, .po-check");
+      const io = new IntersectionObserver(
+        (entries) => entries.forEach((e) => e.isIntersecting && (e.target.classList.add("in"), io.unobserve(e.target))),
+        { threshold: 0.2 }
+      );
+      function replay() {
+        targets.forEach((t) => { t.classList.remove("in"); io.unobserve(t); });
+        requestAnimationFrame(() => requestAnimationFrame(() => targets.forEach((t) => io.observe(t))));
+      }
+      document.getElementById("fx-replay").addEventListener("click", replay);
+      document.getElementById("fx-toggle-panel").addEventListener("click", (e) => {
+        const hidden = document.getElementById("fx-panel-body").classList.toggle("hidden");
+        e.target.textContent = hidden ? "ขยาย" : "ย่อ";
+      });
+      if (matchMedia("(prefers-reduced-motion: reduce)").matches) document.getElementById("fx-reduced").classList.remove("hidden");
+
+      // ?preset=all|rec|none เลือกชุดเริ่มต้นจากลิงก์
+      const preset = new URLSearchParams(location.search).get("preset");
+      if (PRESETS[preset]) boxes.forEach((b) => (b.checked = PRESETS[preset].includes(b.dataset.fx)));
+      sync();
+      targets.forEach((t) => io.observe(t));
+    </script>
+  </body>
+</html>
