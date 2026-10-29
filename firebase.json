@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "public": "/",
+    "public": ".",
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -10,7 +10,11 @@
       "src/**",
       "tailwind.config.js",
       "package*.json",
-      "*.md"
+      "*.md",
+      "req/**",
+      "public/**",
+      "preview-*.html",
+      "firebase-debug.log"
     ],
     "headers": [
       {
